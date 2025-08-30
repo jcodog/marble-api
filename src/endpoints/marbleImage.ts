@@ -1,8 +1,6 @@
 import { OpenAPIRoute } from "chanfana";
 import { AppContext, MarbleQuery, ColorPreset } from "../types";
 import { z } from "zod";
-// We generate a simple SVG image instead of relying on Node canvas APIs
-// so that the endpoint can run in a Cloudflare Worker environment.
 
 const colorPresets: Record<z.infer<typeof ColorPreset>, string[]> = {
   blue: ["#1e3a8a", "#3b82f6", "#93c5fd"],
