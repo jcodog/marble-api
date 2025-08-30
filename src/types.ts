@@ -4,23 +4,22 @@ import { z } from "zod";
 
 export type AppContext = Context<{ Bindings: Env }>;
 
-export const Task = z.object({
-        name: Str({ example: "lorem" }),
-        slug: Str(),
-        description: Str({ required: false }),
-        completed: z.boolean().default(false),
-        due_date: DateTime(),
-});
-
 export const ColorPreset = z
-  .enum(["blue", "red", "green", "purple"])
-  .default("blue");
+  .enum(["white", "black", "blue", "red"]) // primary color presets
+  .default("black");
 
 export const MarbleQuery = z.object({
   color: ColorPreset,
   datetime: DateTime().optional(),
   username: Str({ required: false }),
   size: z.enum(["16:9", "9:16", "1:1"]).default("1:1"),
+  // Optional output resolution scaling without changing the internal pattern
+  // native = default internal resolution; 2k/4k/8k pick standard UHD sizes based on aspect ratio
+  resolution: z.enum(["native", "2k", "4k", "8k"]).default("native").optional(),
+  // Optional sharpening toggle as a query-friendly string
+  sharp: z.enum(["true", "false"]).default("false").optional(),
+  // Output type: svg (default) or png rendered from the generated SVG
+  type: z.enum(["svg", "png"]).default("svg").optional(),
 });
 
 export type MarbleQuery = z.infer<typeof MarbleQuery>;
