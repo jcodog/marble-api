@@ -1,8 +1,4 @@
 import { OpenAPIRoute } from "chanfana";
-// PNG rendering from SVG (WASM)
-import { Resvg, initWasm } from "@resvg/resvg-wasm";
-// eslint-disable-next-line import/default
-import resvgWasm from "@resvg/resvg-wasm/index_bg.wasm";
 import { AppContext, MarbleQuery, ColorPreset } from "../types";
 import { z } from "zod";
 
@@ -59,15 +55,9 @@ export class MarbleImage extends OpenAPIRoute {
     },
     responses: {
       200: {
-        description: "Marble image (SVG or PNG)",
+        description: "SVG marble image",
         content: {
           "image/svg+xml": {
-            schema: {
-              type: "string",
-              format: "binary",
-            },
-          },
-          "image/png": {
             schema: {
               type: "string",
               format: "binary",
@@ -87,7 +77,6 @@ export class MarbleImage extends OpenAPIRoute {
       size,
       resolution: resOpt,
       sharp: sharpOpt,
-      type: typeOpt,
     } = query as any;
 
     const ts = datetime ? new Date(datetime).getTime() : Date.now();
@@ -100,7 +89,6 @@ export class MarbleImage extends OpenAPIRoute {
     // Parse optional flags
     const resolution = (resOpt as string) ?? "native";
     const sharp = ((sharpOpt as string) ?? "false") === "true";
-    const outType = (typeOpt as string) ?? "svg";
 
     // Seed-based parameters for turbulence to make the pattern deterministic per username+time
     const baseFreq = 0.005 + rand() * 0.01; // low freq for broad waves
@@ -267,45 +255,6 @@ export class MarbleImage extends OpenAPIRoute {
     }" filter="url(#veinFilter2)" opacity="${veinOpacity2}"/>
   </g>
 </svg>`;
-
-    if (outType === "png") {
-      try {
-        // Initialize WASM (no-op if already initialized in this worker instance)
-        await initWasm(resvgWasm as ArrayBuffer);
-        // Rendering very large PNGs can exceed Workers memory limits. Cap for safety.
-        const maxDim = 4096;
-        let targetW = outW;
-        let targetH = outH;
-        if (targetW > maxDim || targetH > maxDim) {
-          const scale = Math.min(maxDim / targetW, maxDim / targetH);
-          targetW = Math.max(1, Math.floor(targetW * scale));
-          targetH = Math.max(1, Math.floor(targetH * scale));
-        }
-        const renderer = new Resvg(svg, {
-          fitTo: { mode: "width", value: targetW },
-          background: "transparent",
-        } as any);
-        const rendered = renderer.render();
-        const png = rendered.asPng();
-        return new Response(png, {
-          headers: {
-            "Content-Type": "image/png",
-            "Cache-Control": "no-store",
-            "Content-Disposition": 'attachment; filename="marble.png"',
-          },
-        });
-      } catch (err) {
-        // Fallback to SVG if PNG rasterization fails
-        console.error(err)
-        return new Response(svg, {
-          headers: {
-            "Content-Type": "image/svg+xml",
-            "Content-Disposition": 'attachment; filename="marble.svg"',
-            "X-Marble-PNG-Fallback": "true",
-          },
-        });
-      }
-    }
 
     return new Response(svg, {
       headers: {

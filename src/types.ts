@@ -18,8 +18,6 @@ export const MarbleQuery = z.object({
   resolution: z.enum(["native", "2k", "4k", "8k"]).default("native").optional(),
   // Optional sharpening toggle as a query-friendly string
   sharp: z.enum(["true", "false"]).default("false").optional(),
-  // Output type: svg (default) or png rendered from the generated SVG
-  type: z.enum(["svg", "png"]).default("svg").optional(),
 });
 
 export type MarbleQuery = z.infer<typeof MarbleQuery>;
