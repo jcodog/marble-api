@@ -1,8 +1,6 @@
 import { OpenAPIRoute } from "chanfana";
 import { AppContext, MarbleQuery, ColorPreset } from "../types";
 import { z } from "zod";
-import * as PImage from "pureimage";
-import { PassThrough } from "stream";
 
 const colorPresets: Record<z.infer<typeof ColorPreset>, string[]> = {
   blue: ["#1e3a8a", "#3b82f6", "#93c5fd"],
@@ -52,9 +50,9 @@ export class MarbleImage extends OpenAPIRoute {
     },
     responses: {
       200: {
-        description: "PNG marble image",
+        description: "SVG marble image",
         content: {
-          "image/png": {
+          "image/svg+xml": {
             schema: {
               type: "string",
               format: "binary",
@@ -75,35 +73,22 @@ export class MarbleImage extends OpenAPIRoute {
     const rand = mulberry32(seed);
 
     const { width, height } = getDimensions(size);
-    const img = PImage.make(width, height);
-    const ctx = img.getContext("2d");
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-
     const palette = colorPresets[color];
+
+    let shapes = "";
     for (let i = 0; i < 800; i++) {
-      ctx.fillStyle = palette[Math.floor(rand() * palette.length)];
+      const fill = palette[Math.floor(rand() * palette.length)];
       const x = rand() * width;
       const y = rand() * height;
       const r = rand() * Math.min(width, height) * 0.1;
-      ctx.globalAlpha = 0.5;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
+      shapes += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r.toFixed(2)}" fill="${fill}" fill-opacity="0.5" />`;
     }
-    ctx.globalAlpha = 1;
 
-    const stream = new PassThrough();
-    const chunks: Buffer[] = [];
-    stream.on("data", (chunk) => chunks.push(chunk));
-    const pngPromise = PImage.encodePNGToStream(img, stream);
-    await pngPromise;
-    const buffer = Buffer.concat(chunks);
-    return new Response(buffer, {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#ffffff"/>${shapes}</svg>`;
+    return new Response(svg, {
       headers: {
-        "Content-Type": "image/png",
-        "Content-Disposition": 'attachment; filename="marble.png"',
+        "Content-Type": "image/svg+xml",
+        "Content-Disposition": 'attachment; filename="marble.svg"',
       },
     });
   }
